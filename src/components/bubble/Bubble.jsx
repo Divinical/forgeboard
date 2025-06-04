@@ -28,9 +28,10 @@ const Bubble = ({
   const [completedAt, setCompletedAt] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
-  const { 
-    updateBubble, 
-    burnBubble, 
+  const {
+    updateBubble,
+    burnBubble,
+    freezeBubble,
     updateBubbleCompletion,
     markBubbleReadyToBurn,
     getBubbleById
@@ -130,6 +131,11 @@ const Bubble = ({
   const handleBurn = (e) => {
     e.stopPropagation();
     burnBubble(id);
+  };
+
+  const handleFreeze = (e) => {
+    e.stopPropagation();
+    freezeBubble(id);
   };
 
   const handleBurnNow = () => {
@@ -348,6 +354,7 @@ const Bubble = ({
 
   const actionsProps = {
     handleReflect,
+    handleFreeze,
     handleBurn,
     state,
     isExpanded,
