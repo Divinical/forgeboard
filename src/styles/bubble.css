@@ -1,0 +1,20 @@
+/* Bubble drag feedback */
+.bubble-dragging {
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.4) !important;
+  border: 2px solid rgba(239, 68, 68, 0.6) !important;
+  transition: transform 0.1s ease-out !important;
+  backdrop-filter: blur(12px) !important;
+  animation: bubble-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bubble-pulse {
+  0% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+} 
