@@ -244,9 +244,9 @@ const FlameZone = () => {
 
   return (
     <>
-      {/* Fixed Flame Zone - Ultra High z-index for drag operations */}
+      {/* Fixed Flame Zone - Ultra High z-index for drag operations - Responsive */}
       <motion.div
-        className="fixed bottom-28 md:bottom-32 left-1/2 transform -translate-x-1/2 z-[9999]"
+        className="fixed bottom-24 sm:bottom-28 md:bottom-32 left-1/2 transform -translate-x-1/2 z-[9999]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
@@ -255,7 +255,7 @@ const FlameZone = () => {
         <motion.div
           ref={dropZoneRef}
           className={`
-            relative flex items-center justify-center transition-all duration-500 rounded-full p-6
+            relative flex items-center justify-center transition-all duration-500 rounded-full p-4 sm:p-6
             border-4 border-dashed
             ${isDragOver 
               ? 'bg-orange-500/20 backdrop-blur-md border-orange-400' 
@@ -266,8 +266,8 @@ const FlameZone = () => {
             boxShadow: isDragOver 
               ? '0 0 50px rgba(251, 146, 60, 0.6), inset 0 0 30px rgba(251, 146, 60, 0.2)'
               : '0 0 25px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.08)',
-            minWidth: '100px',
-            minHeight: '100px'
+            minWidth: '80px',
+            minHeight: '80px'
           }}
           // CRITICAL: All drag event handlers
           onDragOver={handleDragOver}
@@ -311,14 +311,14 @@ const FlameZone = () => {
           <AnimatePresence>
             {isDragOver && (
               <motion.div
-                className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
+                className="absolute -bottom-14 sm:-bottom-16 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="bg-zinc-900/95 backdrop-blur-sm border border-orange-500/50 rounded-xl px-4 py-2">
-                  <p className="text-sm font-medium text-orange-300 text-center">
+                <div className="bg-zinc-900/95 backdrop-blur-sm border border-orange-500/50 rounded-xl px-3 sm:px-4 py-2">
+                  <p className="text-xs sm:text-sm font-medium text-orange-300 text-center">
                     {isAnimating ? 'Consuming...' : 'Release to Complete'}
                   </p>
                 </div>
@@ -329,7 +329,7 @@ const FlameZone = () => {
           {/* Completion Success Indicator */}
           {isAnimating && (
             <motion.div
-              className="absolute -top-20 left-1/2 transform -translate-x-1/2 pointer-events-none"
+              className="absolute -top-16 sm:-top-20 left-1/2 transform -translate-x-1/2 pointer-events-none"
               initial={{ opacity: 0, scale: 0, y: 15 }}
               animate={{ 
                 opacity: [0, 1, 1, 0.8, 0],
@@ -338,16 +338,16 @@ const FlameZone = () => {
               }}
               transition={{ duration: 2.2, ease: "easeOut" }}
             >
-              <div className="bg-zinc-900/95 border border-orange-500/60 rounded-xl px-5 py-3 backdrop-blur-sm">
+              <div className="bg-zinc-900/95 border border-orange-500/60 rounded-xl px-3 sm:px-5 py-2 sm:py-3 backdrop-blur-sm">
                 <div className="flex items-center gap-2 text-orange-300">
                   <motion.span
-                    className="text-lg"
+                    className="text-base sm:text-lg"
                     animate={{ rotate: [0, 360, 720] }}
                     transition={{ duration: 1.5, ease: "easeInOut" }}
                   >
                     🔥
                   </motion.span>
-                  <span className="text-sm font-medium">Thought Completed</span>
+                  <span className="text-xs sm:text-sm font-medium">Thought Completed</span>
                 </div>
               </div>
             </motion.div>
@@ -370,9 +370,9 @@ const FlameZone = () => {
           )}
 
           {/* Mobile drag indicator */}
-          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 pointer-events-none md:hidden">
+          <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 pointer-events-none md:hidden">
             <motion.div
-              className="bg-zinc-800/80 backdrop-blur-sm border border-zinc-600 rounded-lg px-3 py-1 text-xs text-gray-400"
+              className="bg-zinc-800/80 backdrop-blur-sm border border-zinc-600 rounded-lg px-2 sm:px-3 py-1 text-xs text-gray-400"
               animate={{ 
                 opacity: isDragOver ? 0 : [0.6, 1, 0.6],
                 scale: isDragOver ? 0.9 : 1
@@ -386,13 +386,13 @@ const FlameZone = () => {
           {/* Drop instruction for desktop */}
           {!isDragOver && !isAnimating && (
             <motion.div
-              className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 pointer-events-none hidden md:block"
+              className="absolute -bottom-10 sm:-bottom-12 left-1/2 transform -translate-x-1/2 pointer-events-none hidden md:block"
               animate={{ 
                 opacity: [0.4, 0.8, 0.4]
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
-              <div className="bg-zinc-800/60 backdrop-blur-sm border border-zinc-600/50 rounded-lg px-3 py-1 text-xs text-zinc-400">
+              <div className="bg-zinc-800/60 backdrop-blur-sm border border-zinc-600/50 rounded-lg px-2 sm:px-3 py-1 text-xs text-zinc-400">
                 Drag thoughts here to complete them
               </div>
             </motion.div>

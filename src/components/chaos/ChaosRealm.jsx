@@ -10,6 +10,7 @@ import VaultSlotTrigger from './VaultSlotTrigger';
 import BurnZoneHint from './BurnZoneHint';
 import ForgeZone from '../forge/ForgeZone';
 import FlameZone from '../flame/FlameZone';
+import DebugOverlay from "../../utils/DebugOverlay";
 
 // Animation variants
 const contentVariants = {
@@ -67,9 +68,72 @@ const ChaosRealm = () => {
   const BUBBLE_LIMIT = 20;
 
   // Filter chaos bubbles from store
-  const chaosBubbles = bubbles.filter(bubble => bubble.state === 'chaos');
+  const chaosBubbles = bubbles.filter(bubble => {
+    const isValid = bubble.state === 'chaos';
+    if (!isValid) {
+      console.log('🚫 Bubble filtered out:', {
+        id: bubble.id,
+        state: bubble.state,
+        timestamp: bubble.timestamp
+      });
+    }
+    return isValid;
+  });
+
   const vaultBubbles = bubbles.filter(bubble => bubble.state === 'vault');
   const hiddenBubbleCount = Math.max(0, chaosBubbles.length - BUBBLE_LIMIT);
+
+  // Debug logging for bubble filtering
+  useEffect(() => {
+    console.log('🌀 ChaosRealm state update:', {
+      total: bubbles.length,
+      chaos: chaosBubbles.length,
+      vault: vaultBubbles.length,
+      hidden: hiddenBubbleCount,
+      chaosDetails: chaosBubbles.map(b => ({
+        id: b.id,
+        key: `bubble-${b.id}`,
+        state: b.state,
+        timestamp: b.timestamp,
+        position: b.position
+      })),
+      allBubbles: bubbles.map(b => ({
+        id: b.id,
+        state: b.state,
+        timestamp: b.timestamp
+      }))
+    });
+
+    // Track state changes
+    const stateChanges = bubbles.filter((bubble, i, arr) => {
+      const prev = arr.find(b => b.id === bubble.id);
+      return prev && prev.state !== bubble.state;
+    });
+
+    if (stateChanges.length > 0) {
+      console.log('🔄 State changes detected:', stateChanges.map(b => ({
+        id: b.id,
+        from: b.previousState,
+        to: b.state,
+        timestamp: b.timestamp
+      })));
+    }
+
+    // Debug DOM elements with keys
+    const bubbleElements = document.querySelectorAll('[id^="bubble-"]');
+    console.log('🔍 DOM Check:', {
+      bubbleElementCount: bubbleElements.length,
+      bubbleIds: Array.from(bubbleElements).map(el => ({
+        id: el.id,
+        key: el.getAttribute('data-key')
+      })),
+      containerVisible: !!document.querySelector('.relative.w-full.h-full.min-h-screen'),
+      zIndexes: {
+        container: getComputedStyle(chaosRealmRef.current).zIndex,
+        bubbleField: document.querySelector('.relative.z-10')?.style.zIndex
+      }
+    });
+  }, [bubbles, chaosBubbles, vaultBubbles, hiddenBubbleCount]);
 
   // Update overflow state
   useEffect(() => {
@@ -222,11 +286,18 @@ const ChaosRealm = () => {
   };
 
   return (
-    <div className="relative w-full">
+    <div className="flex flex-col items-center w-full max-w-screen overflow-x-hidden">
+      {/* Debug Overlay - Responsive */}
+      <DebugOverlay 
+        chaosBubbles={chaosBubbles}
+        hiddenBubbleCount={hiddenBubbleCount}
+        showLatest={true}
+      />
+
       {/* Chaos Realm Section */}
       <div 
         ref={chaosRealmRef}
-        className="relative w-full h-full min-h-screen bg-zinc-900"
+        className="flex flex-col items-center w-full max-w-screen overflow-x-hidden px-4 sm:px-8 pb-32 sm:pb-40 gap-6"
       >
         {/* Background Effects */}
         <ChaosBackground 
@@ -237,7 +308,7 @@ const ChaosRealm = () => {
         />
 
         {/* Main Content */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {editingBubble ? (
             <motion.div
               ref={forgeZoneRef}
@@ -246,7 +317,7 @@ const ChaosRealm = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative z-20 forge-zone"
+              className="w-full max-w-sm forge-zone"
             >
               <ForgeZone
                 bubbleData={editingBubble}
@@ -264,11 +335,13 @@ const ChaosRealm = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative z-10"
+              className="w-full"
             >
               <BubbleField
                 bubbles={chaosBubbles}
+                BUBBLE_LIMIT={BUBBLE_LIMIT}
                 onBubbleClick={handleBubbleClick}
+                onBubbleReflect={handleBubbleReflect}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragUpdate={handleDragUpdate}
@@ -287,7 +360,7 @@ const ChaosRealm = () => {
               exit={{ opacity: 0, y: 20 }}
               className="fixed bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 
                          bg-orange-500/20 border border-orange-500/40 rounded-lg
-                         text-orange-200 text-sm font-medium z-50"
+                         text-orange-200 text-sm font-medium z-50 max-w-[90vw] text-center"
             >
               Release to transfer to Forge
             </motion.div>
@@ -313,7 +386,7 @@ const ChaosRealm = () => {
         />
       </div>
 
-      {/* Debug info (development only) */}
+      {/* Development info */}
       {process.env.NODE_ENV === 'development' && (
         <div className="fixed top-4 left-4 bg-black/50 text-white text-xs px-2 py-1 rounded font-mono z-50">
           <div>Chaos: {chaosBubbles.length}</div>
