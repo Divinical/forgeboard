@@ -29,9 +29,10 @@ const Bubble = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   
-  const { 
-    updateBubble, 
-    burnBubble, 
+  const {
+    updateBubble,
+    burnBubble,
+    freezeBubble,
     updateBubbleCompletion,
     markBubbleReadyToBurn,
     getBubbleById
@@ -42,6 +43,7 @@ const Bubble = ({
 
   // Add ref for the bubble element
   const bubbleRef = useRef(null);
+  const dragStartPos = useRef(null);
 
   // Refs for touch and mouse tracking
   const touchStartPos = useRef(null);
@@ -210,6 +212,11 @@ const Bubble = ({
     burnBubble(id);
   };
 
+  const handleFreeze = (e) => {
+    e.stopPropagation();
+    freezeBubble(id);
+  };
+
   const handleBurnNow = () => {
     console.log('🔥 Burn Now clicked for bubble:', id);
     burnBubble(id);
@@ -277,6 +284,7 @@ const Bubble = ({
   // Truncate text for collapsed view
   const truncatedText = text?.length > 60 ? text.substring(0, 57) + "..." : text || '';
 
+ HEAD
   // Attach touch move with passive: false
   useEffect(() => {
     const element = bubbleRef.current;
@@ -285,6 +293,122 @@ const Bubble = ({
     element.addEventListener('touchmove', handleTouchMove, { passive: false });
     return () => element.removeEventListener('touchmove', handleTouchMove);
   }, []);
+
+  // CRITICAL: HTML5 Drag Event Handlers
+  const handleDragStart = (e) => {
+    if (state !== 'chaos' || isEditing) {
+      e.preventDefault();
+      return;
+    }
+
+    console.log('🚀 DRAG START - Bubble:', id);
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    
+    // CRITICAL: Set drag data that drop zones can read
+    const bubbleData = { id, text, tag, timestamp, state, isComplete };
+    
+    try {
+      e.dataTransfer.setData('application/json', JSON.stringify(bubbleData));
+      e.dataTransfer.setData('text/plain', text);
+      e.dataTransfer.setData('bubbleId', id);
+      e.dataTransfer.effectAllowed = 'move';
+      
+      console.log('📦 Drag data set:', bubbleData);
+    } catch (error) {
+      console.error('❌ DataTransfer error:', error);
+    }
+    
+    // Add visual feedback
+    setTimeout(() => {
+      e.target.style.opacity = '0.7';
+      e.target.style.transform = 'scale(1.05) rotate(2deg)';
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => {
+    console.log('🏁 DRAG END - Bubble:', id);
+    setIsDragging(false);
+
+    if (dragStartPos.current) {
+      const deltaX = e.clientX - dragStartPos.current.x;
+      const deltaY = e.clientY - dragStartPos.current.y;
+      setPosition(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      dragStartPos.current = null;
+    }
+    setDragOffset({ x: 0, y: 0 });
+
+    // Reset visual feedback
+    e.target.style.opacity = '1';
+    e.target.style.transform = 'scale(1) rotate(0deg)';
+  };
+
+  // CRITICAL: Touch handlers for mobile
+  const touchStartPos = useRef(null);
+  const touchStartTime = useRef(null);
+  const isDragStarted = useRef(false);
+  const DRAG_THRESHOLD = 3;
+
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    touchStartTime.current = Date.now();
+    isDragStarted.current = false;
+    setDragOffset({ x: 0, y: 0 });
+    console.log('📱 Touch Start:', { 
+      id,
+      startX: touch.clientX,
+      startY: touch.clientY
+    });
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartPos.current) return;
+    
+    const touchDuration = Date.now() - touchStartTime.current;
+    const touch = e.changedTouches[0];
+    
+    console.log('📱 Touch End:', {
+      id,
+      isDragStarted: isDragStarted.current,
+      duration: touchDuration,
+      finalX: touch.clientX,
+      finalY: touch.clientY
+    });
+    
+    if (isDragStarted.current) {
+      // Dispatch drop event
+      document.dispatchEvent(new CustomEvent('mobileBubbleDrop', {
+        detail: {
+          bubbleData: { id, text, tag, timestamp, state, isComplete },
+          touch: { x: touch.clientX, y: touch.clientY }
+        }
+      }));
+
+      setIsDragging(false);
+      setPosition(prev => ({ x: prev.x + dragOffset.x, y: prev.y + dragOffset.y }));
+      setDragOffset({ x: 0, y: 0 });
+    } else if (touchDuration < 300) {
+      // Only trigger click if we haven't moved significantly
+      const deltaX = touch.clientX - touchStartPos.current.x;
+      const deltaY = touch.clientY - touchStartPos.current.y;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
+      if (distance < DRAG_THRESHOLD) {
+        console.log('📱 Touch Click - Distance check passed:', {
+          id,
+          distance: Math.round(distance),
+          threshold: DRAG_THRESHOLD
+        });
+        handleBubbleClick(e);
+      }
+    }
+    
+    touchStartPos.current = null;
+    touchStartTime.current = null;
+    isDragStarted.current = false;
+  };
+ dfe61b854e857ad4c23d38f51c7644fbae88aacf
 
   // Handle text changes from ChecklistScratchEffect
   const handleTextChange = (newText) => {
@@ -330,6 +454,7 @@ const Bubble = ({
 
   const actionsProps = {
     handleReflect,
+    handleFreeze,
     handleBurn,
     state,
     isExpanded,
@@ -352,7 +477,11 @@ const Bubble = ({
         zIndex: isComplete ? 100 : (isDragging ? 1000 : 10),
         touchAction: state === 'chaos' && !isEditing ? 'none' : 'auto',
         userSelect: 'none',
+ HEAD
         transform: `translate3d(${position.x + dragOffset.x}px, ${position.y + dragOffset.y}px, 0) scale(${isDragging ? 1.1 : 1}) rotate(${isDragging ? 2 : 0}deg)`,
+
+        transform: `translate3d(${position.x + dragOffset.x}px, ${position.y + dragOffset.y}px, 0) scale(${isDragging ? 1.1 : 1}) ${isDragging ? 'rotate(2deg)' : 'rotate(0deg)'}`,
+        dfe61b854e857ad4c23d38f51c7644fbae88aacf
         transition: isDragging ? 'none' : 'transform 0.2s ease-out',
         willChange: 'transform',
         backgroundColor: isDragging ? 'rgba(239, 68, 68, 0.2)' : undefined,
