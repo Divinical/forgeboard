@@ -27,6 +27,7 @@ const Bubble = ({
   const [isComplete, setIsComplete] = useState(false);
   const [completedAt, setCompletedAt] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   
   const {
     updateBubble,
@@ -42,6 +43,7 @@ const Bubble = ({
 
   // Add ref for the bubble element
   const bubbleRef = useRef(null);
+  const dragStartPos = useRef(null);
 
   // CRITICAL: Setup touch event listeners with passive: false
   useEffect(() => {
@@ -211,9 +213,10 @@ const Bubble = ({
       e.preventDefault();
       return;
     }
-    
+
     console.log('🚀 DRAG START - Bubble:', id);
     setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
     
     // CRITICAL: Set drag data that drop zones can read
     const bubbleData = { id, text, tag, timestamp, state, isComplete };
@@ -239,7 +242,15 @@ const Bubble = ({
   const handleDragEnd = (e) => {
     console.log('🏁 DRAG END - Bubble:', id);
     setIsDragging(false);
-    
+
+    if (dragStartPos.current) {
+      const deltaX = e.clientX - dragStartPos.current.x;
+      const deltaY = e.clientY - dragStartPos.current.y;
+      setPosition(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      dragStartPos.current = null;
+    }
+    setDragOffset({ x: 0, y: 0 });
+
     // Reset visual feedback
     e.target.style.opacity = '1';
     e.target.style.transform = 'scale(1) rotate(0deg)';
@@ -286,8 +297,9 @@ const Bubble = ({
           touch: { x: touch.clientX, y: touch.clientY }
         }
       }));
-      
+
       setIsDragging(false);
+      setPosition(prev => ({ x: prev.x + dragOffset.x, y: prev.y + dragOffset.y }));
       setDragOffset({ x: 0, y: 0 });
     } else if (touchDuration < 300) {
       // Only trigger click if we haven't moved significantly
@@ -378,9 +390,7 @@ const Bubble = ({
         zIndex: isComplete ? 100 : (isDragging ? 1000 : 10),
         touchAction: state === 'chaos' && !isEditing ? 'none' : 'auto',
         userSelect: 'none',
-        transform: isDragging 
-          ? `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) scale(1.1) rotate(2deg)`
-          : 'translate3d(0, 0, 0) scale(1)',
+        transform: `translate3d(${position.x + dragOffset.x}px, ${position.y + dragOffset.y}px, 0) scale(${isDragging ? 1.1 : 1}) ${isDragging ? 'rotate(2deg)' : 'rotate(0deg)'}`,
         transition: isDragging ? 'none' : 'transform 0.2s ease-out',
         willChange: 'transform',
         backgroundColor: isDragging ? 'rgba(239, 68, 68, 0.2)' : undefined
